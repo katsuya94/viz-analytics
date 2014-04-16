@@ -1,0 +1,1 @@
+psql -h viz-analytics.cdasz908oyzh.us-west-2.rds.amazonaws.com -U liu viz_analytics
