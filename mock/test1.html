@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1024">
+<title>testChart</title>
+<link rel="stylesheet" href="./common.css">
+<link rel="stylesheet" href="./test.css">
+</head>
+
+<body>
+<div class="toggles"> <p><a href="#" id="reset-graph-button">Reset graph</a></p></div>
+<div class="selectClass">
+<select name="selection" onchange = "location=this.options[this.selectedIndex].value;">
+    <option value="test.html" >totalVisits</option>
+    <option value="test1.html" selected="selected">pagepervisit</option>
+    <option value="test2.html">expectedpagepervisit</option>
+    <option value="test3.html">%piegraph</option>
+</select>
+</div>
+
+
+<div id="wrapper">
+<div class="chart">
+<h3>totalVisitschart</h3>
+<table id="data-table" border="1" cellpadding="10" cellspacing="0"
+summary="test metrics">
+<caption>pagepervisit</caption>
+<thead>
+<tr>
+<td>&nbsp;</td>
+<th scope="col">pagepervisits</th>
+
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">yubanet</th>
+<td>1890</td>
+
+</tr>
+<tr>
+<th scope="row">manometcurrent</th>
+<td>1540</td>
+
+</tr>
+<tr>
+<th scope="row">saratoga wire</th>
+<td>1980</td>
+
+</tr>
+
+<tr>
+<th scope="row">brentwoodhomepage</th>
+<td>1850</td>
+
+</tr>
+<tr>
+<th scope="row">redbankgreen</th>
+<td>1780</td>
+
+</tr>
+<tr>
+<th scope="row">planet princeton</th>
+<td>1490</td>
+
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="test.js"></script>
+
+</body>
+</html> 
