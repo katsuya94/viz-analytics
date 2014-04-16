@@ -1,8 +1,9 @@
 from psycopg2 import connect
 from json import load
-from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE
+from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE, XL_CELL_EMPTY
 from argparse import ArgumentParser
 from datetime import datetime
+import re
 
 parser = ArgumentParser()
 parser.add_argument('file', help='.xls/.xlsx file for importing.')
@@ -25,13 +26,22 @@ offset = 2
 for worksheet_name in worksheets:
 	worksheet = workbook.sheet_by_index(worksheet_name)
 
+	columns = []
+
+	# Determines schema for worksheet
+	for j in range(0, worksheet.ncols - 1):
+		columns.append(re.sub(r'( |-)', '_', str(worksheet.cell_value(0, j)).lower()))
+
 	# Iterate through each row in each worksheet
 	for i in range(offset, worksheet.nrows - 1):
 		row = worksheet.row(i)
 
-		print '%d:' % i
+		print '>%d:' % i
 
 		# Iterate through each cell on the row
 		for j in range(0, worksheet.ncols - 1):
 			if worksheet.cell_type(i, j) == XL_CELL_DATE:
-				print datetime(*xldate_as_tuple(worksheet.cell_value(i, j), 0)).date()
+				val = datetime(*xldate_as_tuple(worksheet.cell_value(i, j), 0)).date()
+			else:
+				val = worksheet.cell_value(i, j)
+			print '>>%s: %s' % (columns[j], val)
