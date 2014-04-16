@@ -3,6 +3,7 @@ from json import load
 from xlrd import open_workbook, xldate_as_tuple, XL_CELL_DATE, XL_CELL_EMPTY
 from argparse import ArgumentParser
 from datetime import datetime
+from pprint import pprint
 import re
 
 parser = ArgumentParser()
@@ -27,10 +28,27 @@ for worksheet_name in worksheets:
 	worksheet = workbook.sheet_by_index(worksheet_name)
 
 	columns = []
+	descriptions = []
 
 	# Determines schema for worksheet
 	for j in range(0, worksheet.ncols - 1):
-		columns.append(re.sub(r'( |-)', '_', str(worksheet.cell_value(0, j)).lower()))
+		description = worksheet.cell_value(0, j)
+		name = re.sub(r'( |-)', '_', str(description).lower())
+		occurrences = columns.count(name)
+		if occurrences == 0:
+			columns.append(name)
+		else:
+			columns.append('%s_%d' % (name, occurrences))
+		descriptions.append(description)
+
+	while True:
+		pprint(columns)
+		find = raw_input('Enter string to be replaced (or nothing to continue): ')
+		if not find:
+			break
+		replace = raw_input('Enter string to replace with: ')
+		columns = map(lambda s: re.sub(find, replace, s), columns)
+
 
 	# Iterate through each row in each worksheet
 	for i in range(offset, worksheet.nrows - 1):
