@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pprint import pprint
 import re
+from string import ascii_lowercase
 
 type_lookup = {
 	XL_CELL_TEXT: 'varchar(255)',
@@ -40,11 +41,6 @@ for worksheet in worksheets:
 	for j in range(0, worksheet.ncols - 1):
 		description = worksheet.cell_value(0, j)
 		name = re.sub(r'( |-)', '_', str(description).lower())
-		occurrences = columns.count(name)
-		if occurrences == 0:
-			columns.append(name)
-		else:
-			columns.append('%s_%d' % (name, occurrences))
 		descriptions.append(description)
 		types.append(type_lookup[worksheet.cell_type(offset, j)])
 
@@ -63,7 +59,7 @@ for worksheet in worksheets:
 		declarations.append('%s %s' % (columns[i], types[i]))
 	sql += ', '.join(declarations) + ');'
 
-	print sql
+	cursor.execute(sql)
 
 	# Iterate through each row in each worksheet
 	for i in range(offset, worksheet.nrows - 1):
