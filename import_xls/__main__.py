@@ -5,18 +5,20 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pprint import pprint
 import re
+import sys
+import traceback
 from string import ascii_lowercase
 
 type_lookup = {
 	XL_CELL_TEXT: 'varchar(255)',
-	XL_CELL_DATE: 'date',
+	XL_CELL_DATE: 'timestamp',
 	XL_CELL_NUMBER: 'integer',
 	XL_CELL_EMPTY: 'integer',
 }
 
 parser = ArgumentParser()
 parser.add_argument('file', help='.xls/.xlsx file for importing.')
-parser.add_argument('-s', metavar='s', help='Sheet number.')
+parser.add_argument('-s', nargs='+', metavar='s', help='Sheet number.')
 args = parser.parse_args()
 
 statements = []
@@ -25,7 +27,7 @@ failures = []
 
 # Open the workbook
 workbook = open_workbook(args.file)
-worksheets = [workbook.sheet_by_index(int(args.s))] if args.s else workbook.sheets()
+worksheets = map(lambda i: workbook.sheet_by_index(int(i)), args.s) if args.s else workbook.sheets()
 
 # Iterate through each worksheet
 for worksheet in worksheets:
@@ -45,27 +47,34 @@ for worksheet in worksheets:
 			name = re.sub(r'( |-|\.)', '_', str(description).lower()) or 'placeholder%d' % j
 			columns.append(name)
 			descriptions.append(description)
-			col_type = worksheet.cell_type(offset, j)
-			if col_type == XL_CELL_TEXT and worksheet.cell_value(offset, j) == '':
-				col_type  = XL_CELL_NUMBER
+			col_type = 0
+			for i in range(offset, worksheet.nrows - 1):
+				this_col_type = worksheet.cell_type(i, j)
+				col_type = col_type or this_col_type
+				if this_col_type == XL_CELL_TEXT and len(worksheet.cell_value(i, j)) > 0:
+					col_type = XL_CELL_TEXT
+					break
+			col_type = col_type or XL_CELL_TEXT
 			types.append(col_type)
 
 		# Allow user to rename columns
 		while True:
-			pprint(columns)
+			for column in columns[offset:]:
+				print column
 			find = raw_input('Enter regex to be replaced (or nothing to continue): ')
 			if not find:
 				break
 			replace = raw_input('Enter string to replace with: ')
-			columns = map(lambda s: re.sub(find, replace, s), columns)
+			columns[offset:] = map(lambda s: re.sub(find, replace, s), columns[offset:])
 
 		sql = 'CREATE TABLE %s (' % table_name
 		declarations = []
-		for i in range(col_offset, worksheet.ncols - 1):
-			declarations.append('%s %s' % (columns[i], type_lookup[types[i]]))
+		for j in range(col_offset, worksheet.ncols - 1):
+			print types[j]
+			declarations.append('%s %s' % (columns[j], type_lookup[types[j]]))
 		sql += ', '.join(declarations) + ');'
 
-		statements.append(sql)
+		statements.append({ 'sql': sql, 'values': () })
 
 		# Iterate through each row in each worksheet
 		for i in range(offset, worksheet.nrows - 1):
@@ -77,28 +86,28 @@ for worksheet in worksheets:
 			for j in range(col_offset, worksheet.ncols - 1):
 				cell_type = types[j]
 				if cell_type == XL_CELL_DATE:
-					val = 'date \'%s\'' % datetime(*xldate_as_tuple(worksheet.cell_value(i, j), 0)).date()
+					val = datetime(*xldate_as_tuple(worksheet.cell_value(i, j), 0))
 				elif cell_type == XL_CELL_NUMBER:
 					val = str(int(worksheet.cell_value(i, j) or 0))
 				elif cell_type == XL_CELL_TEXT:
-					val = '\'%s\'' % worksheet.cell_value(i, j)
+					val = worksheet.cell_value(i, j)
 				else:
 					raise 'Unhandled type %d.' % cell_type
 				values.append(val)
 
-			sql = 'INSERT INTO %s VALUES(%s);' % (table_name, ', '.join(values))
-			statements.append(sql)
+			sql = 'INSERT INTO %s VALUES(%s);' % (table_name, ', '.join(['%s'] * len(values)))
+			statements.append({ 'sql': sql, 'values': values })
 
 		print
 		with open('credentials.json') as credentials:
 			connection = connect(**load(credentials))
 			with connection.cursor() as cursor:
 				for statement in statements:
-					print 'SQL < %s' % statement
-					cursor.execute(statement)
+					cursor.execute(statement['sql'], statement['values'])
 			connection.commit()
 	except Exception as e:
 		print
 		print 'import_xls: %s' % e
+		traceback.print_tb(sys.exc_info()[2])
 		failures.append(worksheet.name)
 print 'Failed on sheet(s): %s.' % ', '.join(failures)
