@@ -122,4 +122,5 @@ for worksheet in worksheets:
 		print 'import_xls: %s' % e
 		traceback.print_tb(sys.exc_info()[2])
 		failures.append(worksheet.name)
-print 'Failed on sheet(s): %s.' % ', '.join(failures) unless failures.empty?
+if failures:
+	print 'Failed on sheet(s): %s.' % ', '.join(failures)
