@@ -9,11 +9,14 @@ import sys
 import traceback
 from string import ascii_lowercase
 
+XL_CELL_LONG = 13
+
 type_lookup = {
-	XL_CELL_TEXT: 'varchar(255)',
-	XL_CELL_DATE: 'timestamp',
-	XL_CELL_NUMBER: 'integer',
-	XL_CELL_EMPTY: 'integer',
+	XL_CELL_TEXT:	'varchar(255)',
+	XL_CELL_DATE:	'timestamp',
+	XL_CELL_NUMBER:	'integer',
+	XL_CELL_EMPTY:	'integer',
+	XL_CELL_LONG:	'text',
 }
 
 parser = ArgumentParser()
@@ -51,30 +54,38 @@ for worksheet in worksheets:
 			for i in range(offset, worksheet.nrows - 1):
 				this_col_type = worksheet.cell_type(i, j)
 				col_type = col_type or this_col_type
-				if this_col_type == XL_CELL_TEXT and len(worksheet.cell_value(i, j)) > 0:
+				val = worksheet.cell_value(i, j)
+				if this_col_type == XL_CELL_TEXT and len(val) > 0:
+					if len(val) > 255:
+						col_type = XL_CELL_LONG
+						break
 					col_type = XL_CELL_TEXT
-					break
 			col_type = col_type or XL_CELL_TEXT
 			types.append(col_type)
 
 		# Allow user to rename columns
 		while True:
-			for column in columns[offset:]:
+			for column in columns[col_offset:]:
 				print column
 			find = raw_input('Enter regex to be replaced (or nothing to continue): ')
 			if not find:
 				break
 			replace = raw_input('Enter string to replace with: ')
-			columns[offset:] = map(lambda s: re.sub(find, replace, s), columns[offset:])
+			columns[col_offset:] = map(lambda s: re.sub(find, replace, s), columns[col_offset:])
 
 		sql = 'CREATE TABLE %s (' % table_name
 		declarations = []
 		for j in range(col_offset, worksheet.ncols - 1):
-			print types[j]
 			declarations.append('%s %s' % (columns[j], type_lookup[types[j]]))
 		sql += ', '.join(declarations) + ');'
 
 		statements.append({ 'sql': sql, 'values': () })
+
+		for j in range(col_offset, worksheet.ncols - 1):
+			statements.append({
+				'sql': 'COMMENT ON COLUMN %s.%s IS \'%s\';' % (table_name, columns[j], descriptions[j]),
+				'values': ()
+			})
 
 		# Iterate through each row in each worksheet
 		for i in range(offset, worksheet.nrows - 1):
@@ -89,7 +100,7 @@ for worksheet in worksheets:
 					val = datetime(*xldate_as_tuple(worksheet.cell_value(i, j), 0))
 				elif cell_type == XL_CELL_NUMBER:
 					val = str(int(worksheet.cell_value(i, j) or 0))
-				elif cell_type == XL_CELL_TEXT:
+				elif cell_type == XL_CELL_TEXT or cell_type == XL_CELL_LONG:
 					val = worksheet.cell_value(i, j)
 				else:
 					raise 'Unhandled type %d.' % cell_type
@@ -103,6 +114,7 @@ for worksheet in worksheets:
 			connection = connect(**load(credentials))
 			with connection.cursor() as cursor:
 				for statement in statements:
+					# print statement['sql'] % statement['values']
 					cursor.execute(statement['sql'], statement['values'])
 			connection.commit()
 	except Exception as e:
@@ -110,4 +122,4 @@ for worksheet in worksheets:
 		print 'import_xls: %s' % e
 		traceback.print_tb(sys.exc_info()[2])
 		failures.append(worksheet.name)
-print 'Failed on sheet(s): %s.' % ', '.join(failures)
+print 'Failed on sheet(s): %s.' % ', '.join(failures) unless failures.empty?
