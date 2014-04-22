@@ -24,8 +24,6 @@ parser.add_argument('file', help='.xls/.xlsx file for importing.')
 parser.add_argument('-s', nargs='+', metavar='s', help='Sheet number.')
 args = parser.parse_args()
 
-statements = []
-
 failures = []
 
 # Open the workbook
@@ -35,7 +33,11 @@ worksheets = map(lambda i: workbook.sheet_by_index(int(i)), args.s) if args.s el
 # Iterate through each worksheet
 for worksheet in worksheets:
 	try:
+		statements = []
+
 		table_name = re.sub(r'( |-|\.)', '_', str(worksheet.name.lower()))
+
+		print 'Table name: %s' % table_name
 
 		offset = int(raw_input('Offset: ') or 0)
 		col_offset = int(raw_input('Column offset: ') or 0)
@@ -76,7 +78,7 @@ for worksheet in worksheets:
 		sql = 'CREATE TABLE %s (' % table_name
 		declarations = []
 		for j in range(col_offset, worksheet.ncols - 1):
-			declarations.append('%s %s' % (columns[j], type_lookup[types[j]]))
+			declarations.append('"%s" %s' % (columns[j], type_lookup[types[j]]))
 		sql += ', '.join(declarations) + ');'
 
 		statements.append({ 'sql': sql, 'values': () })
