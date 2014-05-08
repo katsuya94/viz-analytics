@@ -1,7 +1,7 @@
 require 'test_helper'
 
 class MetricTest < ActiveSupport::TestCase
-  # test "the truth" do
-  #   assert true
-  # end
+	test "Raw Metrics" do
+		puts metrics(:bounce_rate).get_datum(companies(:buzzfeed))
+	end
 end

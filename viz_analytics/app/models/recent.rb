@@ -1,8 +1,8 @@
 class Recent < ActiveRecord::Base
 
-	has_one :datum
 	belongs_to :metric
+	belongs_to :datum
 
-	scope :with_company, ->(company) { joins(:data).where(:company => company) }
+	scope :with_company, ->(company) { joins(:datum).where( :data => { :company_id => company.id } ).first }
 
 end
