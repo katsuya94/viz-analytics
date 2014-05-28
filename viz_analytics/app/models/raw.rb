@@ -1,7 +1,7 @@
 class Raw < Metric
 
 	def get_datum(company)
-		recent = self.recents.with_company company
+		recent = self.recents.with_company(company).first.thing
 		
 		unless recent.datum.old?
 			return recent.datum.value, self.class.name.underscore.to_sym
